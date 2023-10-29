@@ -156,13 +156,10 @@ void switchMode(systemMode newMode){
     // Reset nextMode, used to trigger 'switchMode()' in 'loop()'
     nextMode = noMode;
 
-    currentMode = newMode;
+    // Sets the time threshold for the next measure back to 0
+    nextMeasure = 0;
 
-    //Serial.println(currentMode);
-
-    nextMeasure = 0; // Sets the time threshold for the next measure back to 0
-
-    switch (currentMode) {
+    switch (newMode) {
         // Standard
         case standard :
             setLEDcolor(Green);
@@ -187,8 +184,9 @@ void switchMode(systemMode newMode){
 
         case noMode:
             //noMode is not allowed as a system mode, returning to previous mode
-            break;
+            return;
     }
+    currentMode = newMode;
 }
 
 // -- Interrupts --
