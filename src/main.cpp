@@ -710,9 +710,9 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(greenButtonPIN), greenButtonInterrupt, CHANGE);
     attachInterrupt(digitalPinToInterrupt(redButtonPIN), redButtonInterrupt, CHANGE);
 
-    // -- Reserve space for Strings --
+    // -- Reserve space for Strings to avoid fragmentation --
     // Contains sensor data
-    dataString.reserve(130);
+    dataString.reserve(125);
 
     // Contains GPS data
     gpsData.reserve(75);
