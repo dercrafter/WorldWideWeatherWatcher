@@ -75,7 +75,7 @@ void setLEDcolor(RGB RGBvalue){
 }
 
 [[noreturn]] void blinkLED(RGB RGBvalue1, RGB RGBvalue2, int secondColorTimeMultiplier) {
-    // Second color is secondColorTimeMultiplier longer than first one, overall frequency : 1 Hz
+    // Second color shines for secondColorTimeMultiplier longer than first one, overall frequency : 1 Hz
 
     unsigned short int color_1_time = 1000 / (secondColorTimeMultiplier + 1);
     unsigned short int color_2_time = ((1000 * secondColorTimeMultiplier) / (secondColorTimeMultiplier + 1));
