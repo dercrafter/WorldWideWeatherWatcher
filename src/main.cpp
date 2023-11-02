@@ -7,6 +7,7 @@
 #include <DS1307.h>
 #include <ChainableLED.h>
 #include <EEPROM.h>
+//#include "config.cpp"
 
 // -- Pins --
 // SoftSerial pins
@@ -31,7 +32,7 @@
 // #define EEPROM_CompilerTimeApplied 1    // Set to true once __DATE__ has been written to the RTC once
 
 // -- MISC --
-#define buttonPressTime 5000 // Time button has to be pressed for (in ms)
+#define buttonPressTime 5000000 // Time button has to be pressed for (in µs)
 
 //TODO move global variables to EEPROM when possible
 
@@ -104,6 +105,19 @@ void setLEDcolor(RGB RGBvalue){
 ===================================================
 */
 
+// -- Button Pressed Bools --
+bool greenButtonPressed = false;
+bool redButtonPressed = false;
+
+String promptUserInput(const String& prompt) {
+    Serial.println(prompt);
+
+    while (Serial.available() == 0) {
+        // TODO check if config mode timer has expired, return if yes
+    }
+    return Serial.readString();
+}
+
 // -- Measure timing variables --
 //Interval between measures in ms (standard systemMode)
 unsigned int LOG_INTERVALL = 2000;
@@ -116,7 +130,9 @@ enum errorCase {RTC_error, GPS_error, Sensor_error, Data_error, SDfull_error, SD
 
 // -- System error handling --
 void criticalError(errorCase error) {
-    noInterrupts();
+    // Block both interrupt functions
+    redButtonPressed = true;
+    greenButtonPressed = true;
 
     switch (error) {
         case RTC_error:
@@ -140,7 +156,8 @@ void criticalError(errorCase error) {
 }
 
 // -- Enum containing all possible system modes --
-enum systemMode {standard, economic, maintenance, config, noMode}; // DO NOT CHANGE THIS OUTSIDE THE 'switchMode()' FUNCTION OR STUFF WILL BREAK
+// DO NOT CHANGE THIS OUTSIDE THE 'switchMode()' FUNCTION OR STUFF WILL BREAK
+enum systemMode {standard, economic, maintenance, config, noMode};
 
 // -- System currentMode variable --
 systemMode currentMode = standard;
@@ -194,19 +211,23 @@ void switchMode(systemMode newMode){
 // as long as the pressed button is not released before that time
 unsigned int switchModeTimer = 0;
 
-bool greenButtonPressed = false;
-bool redButtonPressed = false;
 
 void greenButtonInterrupt() {
-    //Print Green Button Interrupt
-    Serial.println("GBI");
-
+    noInterrupts();
     if (!redButtonPressed) {
-        // For some reason our button signals are inverted,
+        // The buttons are LOW active,
         // so 'not pressed' -> HIGH and 'pressed' -> LOW
 
         greenButtonPressed = !digitalRead(greenButtonPIN);
     }
+    else {
+        // Return if red button is already pressed
+        interrupts();
+        return;
+    }
+
+    //Print Green Button Interrupt
+    Serial.println("GBI "+ String(greenButtonPressed));
 
     if (greenButtonPressed) {
         if (currentMode == standard) {
@@ -215,25 +236,31 @@ void greenButtonInterrupt() {
         if (currentMode == economic) {
             nextMode = standard;
         }
-        switchModeTimer = millis() + buttonPressTime;
+        switchModeTimer = micros() + buttonPressTime;
     }
     else {
         nextMode = noMode;
         switchModeTimer = 0;
     }
-
+    interrupts();
 }
 
 void redButtonInterrupt() {
-    //Print Red Button Interrupt
-    Serial.println("RBI");
-
+    noInterrupts();
     if (!greenButtonPressed) {
-        // For some reason our button signals are inverted,
+        // The buttons are LOW active,
         // so 'not pressed' -> HIGH and 'pressed' -> LOW
 
         redButtonPressed = !digitalRead(redButtonPIN);
     }
+    else {
+        // Return if green button is already pressed
+        interrupts();
+        return;
+    }
+
+    //Print Red Button Interrupt
+    Serial.println("RBI "+ String(redButtonPressed));
 
     if (redButtonPressed) {
         if (currentMode == standard or currentMode == economic) {
@@ -242,13 +269,13 @@ void redButtonInterrupt() {
         if (currentMode == maintenance) {
             nextMode = lastModeBeforeMaintenance;
         }
-        switchModeTimer = millis() + buttonPressTime;
+        switchModeTimer = micros() + buttonPressTime;
     }
     else {
         nextMode = noMode;
         switchModeTimer = 0;
     }
-
+    interrupts();
 }
 
 /*
@@ -400,14 +427,14 @@ void writeToSD(const String& dataToWrite){
             criticalError(SDread_error);
         }
 
-        // If projected filesize < 4000 byte
+        // If projected filesize < 4000 bytes
         if ((currentFile.fileSize() + sizeof(dataToWrite))<4000) {
             Serial.println("");
             Serial.println("F : " + fileName);
             t = false;
         }
 
-        // If filesize > 4000 byte
+        // If projected filesize > 4000 bytes
         else {
             Serial.println("F : " + fileName + " FULL");
             currentFile.close();
@@ -656,8 +683,8 @@ void setup() {
     setUpColors();
 
     // -- Configure buttons --
-    pinMode(greenButtonPIN, INPUT);
-    pinMode(redButtonPIN, INPUT);
+    pinMode(greenButtonPIN, INPUT_PULLUP);
+    pinMode(redButtonPIN, INPUT_PULLUP);
 
     // -- Open serial communications and wait for port to open --
     Serial.begin(9600);
@@ -666,7 +693,7 @@ void setup() {
 
     // -- Check if RED button is pressed for 5 sec, go to config systemMode --
     if (!digitalRead(redButtonPIN)) {
-        unsigned long counter = millis()+5000;
+        unsigned long counter = micros()+buttonPressTime;
         bool g = true;
         while (g) {
             //Serial.println("Red is pressed :" + String(counter-millis()));
@@ -674,7 +701,7 @@ void setup() {
                 //Serial.println("Red is not pressed");
                 g = false;
             }
-            else if (millis()>counter) {
+            else if (micros()>counter) {
                 switchMode(config);
                 g = false;
             }
@@ -718,7 +745,6 @@ void setup() {
     // Strings to assemble file name
     fileDate.reserve(8);
     fileName.reserve(16);
-
 }
 
 void loop() {
@@ -770,12 +796,14 @@ void loop() {
             }
         }
     }
-    else if (millis() >= switchModeTimer) {
+    else if (micros() >= switchModeTimer) {
+        greenButtonPressed = false;
+        redButtonPressed = false;
         switchMode(nextMode);
     }
-    else {
-        Serial.println("T : " + String(switchModeTimer - millis()) + " M : " + nextMode + " L : " + lastModeBeforeMaintenance);
-    }
+    //else {
+    //    Serial.println(String(switchModeTimer - millis()));
+    //}
 }
 
 
