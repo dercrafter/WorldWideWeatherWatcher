@@ -29,7 +29,7 @@
 
 // -- MISC --
 #define buttonPressTime 5000000  // Time button has to be pressed for (in µs)
-#define configTimeout 1800000    // Time no cmd has to be entered for, to exit config mode (in ms)
+#define configTimeout 1800000    // Time no command has to be entered for, to exit config mode (in ms)
 
 #define deviceID 69
 #define programVersion 420
@@ -148,8 +148,6 @@ void defaultConfig() {
     currentSystemConfiguration.FILE_MAX_SIZE = 4096;
 }
 
-
-
 // Set to false if this is the first time program is being executed since having been flashed onto the arduino
 // this is being used to determine whether the RTC needs to be set to the correct time and if there is already a
 // config that needs to be loaded from EEPROM
@@ -161,9 +159,6 @@ bool redButtonPressed = false;
 
 
 // -- Measure timing variables --
-//Interval between measures in ms (standard systemMode)
-unsigned int LOG_INTERVALL = 2000;
-
 // Time when economic / standard / maintenance systemMode will be executed next
 unsigned int nextMeasureTimer = 0;
 
@@ -241,7 +236,7 @@ void switchMode(systemMode newMode){
 
         // Config
         case config:
-            configTimeoutTimer = millis() + configTimeoutTimer;
+            configTimeoutTimer = millis() + configTimeout;
             setLEDcolor(Yellow);
             break;
 
@@ -273,7 +268,7 @@ void greenButtonInterrupt() {
     }
 
     //Print Green Button Interrupt
-    Serial.println("GBI "+ String(greenButtonPressed));
+    //Serial.println("GBI "+ String(greenButtonPressed));
 
     if (greenButtonPressed) {
         if (currentMode == standard) {
@@ -307,7 +302,7 @@ void redButtonInterrupt() {
     }
 
     //Print Red Button Interrupt
-    Serial.println("RBI "+ String(redButtonPressed));
+    //Serial.println("RBI "+ String(redButtonPressed));
 
     if (redButtonPressed) {
         if (currentMode == standard or currentMode == economic) {
@@ -325,6 +320,13 @@ void redButtonInterrupt() {
     interrupts();
 }
 
+// -- Make a string for assembling the data to log --
+// 125 characters are reserved for this String in 'Setup()'
+String dataString;
+
+// Separator placed between RTC, GPS and sensor data in 'dataString'
+String valueSeparator = " ; ";
+
 /**
 =================================================== \n
 ==================== BME 280 Stuff ==================== \n
@@ -332,6 +334,38 @@ void redButtonInterrupt() {
 */
 
 ForcedClimate BMESensor = ForcedClimate();
+
+void addBMEdata(String& output) {
+    //-- BME280 Readings --
+    BMESensor.takeForcedMeasurement();
+
+    //Temperature
+    float temperature = BMESensor.getTemperatureCelcius();
+
+    //Serial.println("temp : " + String(temperature));
+
+    if (currentSystemConfiguration.ACTIVATE_THERMOMETER and currentSystemConfiguration.THERMOMETER_MIN_TEMPERATURE <= temperature and temperature >= currentSystemConfiguration.THERMOMETER_MAX_TEMPERATURE) {
+        output += String(temperature);
+
+        output += valueSeparator;
+    }
+
+    //Humidity
+    if (currentSystemConfiguration.ACTIVATE_HYGROMETRY_SENSOR and currentSystemConfiguration.MIN_TEMPERATURE_FOR_HYGROMETRY <= temperature and temperature >= currentSystemConfiguration.MAX_TEMPERATURE_FOR_HYGROMETRY) {
+        output += String(BMESensor.getRelativeHumidity());
+
+        output += valueSeparator;
+    }
+
+    //Pressure
+    float pressure = BMESensor.getPressure();
+
+    if (currentSystemConfiguration.ACTIVATE_PRESSURE_SENSOR and currentSystemConfiguration.MIN_VALID_PRESSURE <= pressure and pressure >= currentSystemConfiguration.MAX_VALID_PRESSURE) {
+
+        output += String(pressure);
+    }
+}
+
 
 void configureBME() {
     Wire.begin();
@@ -344,6 +378,7 @@ void configureBME() {
 ===================================================
 */
 
+/*
 int weekdayStringToInt (const String& weekday, unsigned char& weekdayNumber) {
     const char* weekdays[] = {"MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"};
 
@@ -356,8 +391,10 @@ int weekdayStringToInt (const String& weekday, unsigned char& weekdayNumber) {
     return false;
 }
 
+ */
 
-int monthStringToInt (const String& month, unsigned char& monthNumber) {
+/*
+int monthStringToInt (const String& month, unsigned short int& monthNumber) {
     const char* months[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
 
     for (unsigned char i = 1; i <= 12; i++) {
@@ -367,86 +404,55 @@ int monthStringToInt (const String& month, unsigned char& monthNumber) {
         }
     }
     return false;
-}
+}*/
 
 
-/*
-struct RTC_time {
-    unsigned short int year;
-    unsigned char month;
-    unsigned char day;
-    unsigned char hour;
-    unsigned char minute;
-    unsigned char second;
-    unsigned char day_of_week;
-
-};
-*/
-
+DS1307 clock;
 
 //TODO optimize this
-DS1307 clock;
 
 /*
 void configureRTC() {
-    short int compilerDateAlreadySet;
+    String compilationDate = __DATE__;
+    String compilationTime = __TIME__;
 
-    EEPROM.get(0, compilerDateAlreadySet);
+    const char* months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
-    if (compilerDateAlreadySet == 255) {
-        String compilationDate = __DATE__;
-        String compilationTime = __TIME__;
+    char monthChar[4];
 
-        const char* months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    unsigned short int year, month, day, hour, minute, second;
 
-        char monthChar[4];
+    sscanf(compilationDate.c_str(), "%3s %hd %hd", monthChar, &day, &year);
 
-        unsigned short int year, month, day, hour, minute, second;
+    sscanf(compilationTime.c_str(), "%hd:%hd:%hd", &hour, &minute, &second);
 
-        sscanf(compilationDate.c_str(), "%3s %hd %hd", monthChar, &day, &year);
+    monthStringToInt(monthChar, month);
 
-        sscanf(compilationTime.c_str(), "%hd:%hd:%hd", &hour, &minute, &second);
+    clock.fillByYMD(year, month, day); //Jan 19, 2013
+    clock.fillByHMS(hour, minute, second); //15:28 30"
+    // clock.fillDayOfWeek(day_of_week); //Saturday
+    clock.setTime();//write time to the RTC chip
 
-
-        month = 0;
-        // Convert month String to int
-        bool t = true;
-        while (t) {
-            if (strcmp(monthChar, months[month]) == 0) {
-                t = false;
-            }
-            month++;
-        }
-
-        clock.fillByYMD(year,month,day); //Jan 19, 2013
-        clock.fillByHMS(hour,minute,second); //15:28 30"
-        // clock.fillDayOfWeek(day_of_week); //Saturday
-        clock.setTime();//write time to the RTC chip
-
-        // Serial.println("DOW : " + String(day_of_week));
-
-        compilerDateAlreadySet = 100;
-        EEPROM.put(0, compilerDateAlreadySet);
-    }
+    // Serial.println("DOW : " + String(day_of_week));
 }
- */
+*/
 
-String getTime()
+// -- Adds the time to a String --
+void addTime(String& output)
 {
-    String time="";
     clock.getTime();
-    time+=String(clock.hour, DEC);
-    time+=String(":");
-    time+=String(clock.minute, DEC);
-    time+=String(":");
-    time+=String(clock.second, DEC);
-    time+=String("-");
-    time+=String(clock.month, DEC);
-    time+=String("/");
-    time+=String(clock.dayOfMonth, DEC);
-    time+=String("/");
-    time+=String(clock.year+2000, DEC);
-    return time;
+    output += String(clock.hour, DEC);
+    output += ":";
+    output += String(clock.minute, DEC);
+    output += ":";
+    output += String(clock.second, DEC);
+    output += "-";
+    output += String(clock.month, DEC);
+    output += "/";
+    output += String(clock.dayOfMonth, DEC);
+    output += "/";
+    output += String(clock.year + 2000, DEC);
+    output += valueSeparator;
 }
 
 /**
@@ -524,10 +530,25 @@ void writeToSD(const String& dataToWrite){
 ===================================================
 */
 
-String readLightSensor() {
-    int data = analogRead(lightSensorPIN);
-    return String(data);
+void addLightSensorData(String& output) {
+    //Return if luminosity sensor is disabled
+    if (!currentSystemConfiguration.ACTIVATE_LUMINOSITY_SENSOR) {
+        return;
+    }
+
+    unsigned int data = analogRead(lightSensorPIN);
+    if (data < currentSystemConfiguration.LUMINOSITY_LOW_THRESHOLD) {
+        output += "LOW";
+    }
+    else if ((data < currentSystemConfiguration.LUMINOSITY_HIGH_THRESHOLD)) {
+        output += "AVERAGE";
+    }
+    else {
+        output += "HIGH";
+    }
+    output += valueSeparator;
 }
+
 
 /**
 =================================================== \n
@@ -547,29 +568,29 @@ void configureGPS() {
 // 75 characters are reserved for this String in 'Setup()'
 String gpsData;
 
-String readGPS() {
+void addGPSdata(String& output) {
     bool t = false;
 
-    if (SoftSerial.available()) // if data is coming from software serial port ==> data is coming from SoftSerial GPS
+    if (SoftSerial.available()) // Check if softserial is open
     {
+
         t=true;
 
         while(t) {
             gpsData = SoftSerial.readStringUntil('\n');
 
-            //Serial.print(gpsData);
-
             gpsData.trim();
-
-            //gpsData.replace("\r", "");
 
             if (gpsData.startsWith("$GPGGA",0)){
                 t=false;
             }
         }
-        return gpsData;
+        output+=gpsData;
     }
-    return "GPS error";
+    else {
+        output += "GPS error";
+    }
+    output+=valueSeparator;
 }
 
 /**
@@ -578,44 +599,19 @@ String readGPS() {
 ===================================================
 */
 
-// -- Make a string for assembling the data to log --
-// 125 characters are reserved for this String in 'Setup()'
-String dataString;
-
-// Separator placed between RTC, GPS and sensor data in 'dataString'
-String valueSeparator = " ; ";
-
 void standardMode() {
     // -- RTC Clock reading --
-    dataString += getTime();
+    addTime(dataString);
 
-    dataString += valueSeparator;
 
     // -- GPS reading --
-    dataString += readGPS();
-
-    dataString += valueSeparator;
+    addGPSdata(dataString);
 
     // -- Luminosity captor reading --
-    dataString += readLightSensor();
-
-    dataString += valueSeparator;
+    addLightSensorData(dataString);
 
     //-- BME280 Readings --
-    BMESensor.takeForcedMeasurement();
-
-    //Temperature
-    dataString += String(BMESensor.getTemperatureCelcius());
-
-    dataString += valueSeparator;
-
-    //Humidity
-    dataString += String(BMESensor.getRelativeHumidity());
-
-    dataString += valueSeparator;
-
-    //Pressure
-    dataString += String(BMESensor.getPressure());
+    addBMEdata(dataString);
 
     // -- Write data to SD --
     writeToSD(dataString);
@@ -639,40 +635,21 @@ bool readGPSnextExec = true;
 // Identical to standard systemMode, except for doubled interval and GPS only being read 1/2 the time
 void economicMode() {
     // -- RTC Clock reading --
-    dataString += getTime();
-
-    dataString += valueSeparator;
+    addTime(dataString);
 
     // -- GPS reading --
     // Only called every second execution
     if (readGPSnextExec) {
-        dataString += readGPS();
-
-        dataString += valueSeparator;
+        addGPSdata(dataString);
     }
 
     readGPSnextExec = !readGPSnextExec;
 
     // -- Luminosity captor reading --
-    dataString += readLightSensor();
-
-    dataString += valueSeparator;
+    addLightSensorData(dataString);
 
     // -- BME280 Readings --
-    BMESensor.takeForcedMeasurement();
-
-    // Temperature
-    dataString += String(BMESensor.getTemperatureCelcius());
-
-    dataString += valueSeparator;
-
-    // Humidity
-    dataString += String(BMESensor.getRelativeHumidity());
-
-    dataString += valueSeparator;
-
-    // Pressure
-    dataString += String(BMESensor.getPressure());
+    addBMEdata(dataString);
 
     // -- Write data to SD --
     writeToSD(dataString);
@@ -691,35 +668,16 @@ void economicMode() {
 
 void maintenanceMode() {
     // -- RTC Clock reading --
-    dataString += getTime();
-
-    dataString += valueSeparator;
+    addTime(dataString);
 
     // -- GPS reading --
-    dataString += readGPS();
-
-    dataString += valueSeparator;
+    addGPSdata(dataString);
 
     // -- Luminosity captor reading --
-    dataString += readLightSensor();
-
-    dataString += valueSeparator;
+    addLightSensorData(dataString);
 
     // -- BME280 Readings --
-    BMESensor.takeForcedMeasurement();
-
-    // Temperature
-    dataString += String(BMESensor.getTemperatureCelcius());
-
-    dataString += valueSeparator;
-
-    // Humidity
-    dataString += String(BMESensor.getRelativeHumidity());
-
-    dataString += valueSeparator;
-
-    // Pressure
-    dataString += String(BMESensor.getPressure());
+    addBMEdata(dataString);
 
     // -- Print dataString to Serial
     Serial.println(dataString);
@@ -747,8 +705,6 @@ void configValueError(const String& command, const int& value) {
     Serial.print("Unsupported value - " + command + " : " + String(value));
 }
 
-
-
 void writeConfigToEEPROM () {
     EEPROM.put(EEPROM_configuration, currentSystemConfiguration);
 }
@@ -758,6 +714,8 @@ void getConfigFromEEPROM () {
 }
 
 // TODO add config systemMode
+
+
 void configMode() {
     // Reset config mode timeout to 30 minutes
     configTimeoutTimer = millis() + configTimeout;
@@ -917,15 +875,15 @@ void configMode() {
 
         if (sscanf(HHMMSS.c_str(), "%s:%s:%s", &hour, &minute, &second) == 3) {
             if (hour < 0 or hour > 23) {
-                configValueError("Hour", hour);
+                configValueError("hr", hour);
                 return;
             }
             if (minute < 0 or minute > 59) {
-                configValueError("Minute", minute);
+                configValueError("min", minute);
                 return;
             }
             if (second < 0 or second > 59) {
-                configValueError("Second", second);
+                configValueError("sec", second);
                 return;
             }
 
@@ -933,7 +891,7 @@ void configMode() {
             clock.setTime();
         }
         else {
-            Serial.println("Error, use HH:MM:SS");
+            Serial.println("err");
         }
     }
 
@@ -945,15 +903,15 @@ void configMode() {
 
         if (sscanf(MMDDYY.c_str(), "%s:%s:%d", &month, &day, &year) == 3) {
             if (month < 1 or month > 12) {
-                configValueError("Month", month);
+                configValueError("mth", month);
                 return;
             }
             if (day < 1 or day > 31) {
-                configValueError("Day", day);
+                configValueError("dy", day);
                 return;
             }
             if (year < 2000 or year > 2099) {
-                configValueError("Year", year);
+                configValueError("yr", year);
                 return;
             }
 
@@ -961,13 +919,22 @@ void configMode() {
             clock.setTime();
         }
         else {
-            Serial.println("Error, use MM:DD:YY");
+            Serial.println("err");
             return;
         }
     }
 
     // String -> Unsigned char
     else if (command == "DAY") {
+        if (1 <= value and value >= 7) {
+            clock.fillDayOfWeek(value);
+        }
+        else {
+            configValueError(command, value);
+        }
+        return;
+
+        /*
         String day = promptUserInput("Day");
 
         unsigned char weekdayNumber;
@@ -977,9 +944,10 @@ void configMode() {
             clock.setTime();
         }
         else {
-            Serial.println("Error, invalid weekday");
+            Serial.println("Error");
         }
         return;
+         */
     }
 
     // -- MISC --
@@ -1026,12 +994,15 @@ void configMode() {
 
     // If command is unknown, return to loop()
     else {
-        Serial.println("Unknown command");
+        Serial.println("Unknown cmd");
         return;
     }
 
+    //Serial.println(command + " (" + String(value) + ")");
+
     writeConfigToEEPROM();
 }
+
 
 /**
 =================================================== \n
@@ -1043,6 +1014,7 @@ void setup() {
     // -- Configure LEDs --
     leds.init();
 
+    // Create RGB struct for each necessary color
     setUpColors();
 
     // -- Configure buttons --
@@ -1054,7 +1026,12 @@ void setup() {
 
     while (!Serial) {}
 
+
     EEPROM.get(EEPROM_BOOL_programHasRunBefore, programHasRunBefore);
+
+
+    // TODO remember to remove
+    programHasRunBefore = false;
 
     if (programHasRunBefore) {
         // If this is not the first time the program is running since the arduino was flashed
@@ -1067,7 +1044,6 @@ void setup() {
         programHasRunBefore = true;
         EEPROM.put(EEPROM_BOOL_programHasRunBefore, programHasRunBefore);
     }
-
 
     // -- Check if RED button is pressed for 5 sec, go to config systemMode --
     if (!digitalRead(redButtonPIN)) {
@@ -1127,59 +1103,62 @@ void setup() {
 
 void loop() {
     if (nextMode == noMode) {
-        if (millis() > nextMeasureTimer) {
-            switch (currentMode) {
-                case standard:
+        switch (currentMode) {
+            case standard:
+                if (millis() > nextMeasureTimer) {
                     // Set time for next measure
-                    nextMeasureTimer = millis() + LOG_INTERVALL;
+                    nextMeasureTimer = millis() + currentSystemConfiguration.LOG_INTERVALL;
 
                     // Reset dataString
                     dataString = "";
 
                     // Execute Mode
                     standardMode();
-                    break;
+                }
+                break;
 
-                case economic:
+            case economic:
+                if (millis() > nextMeasureTimer) {
                     // Set time for next measure
-                    nextMeasureTimer = millis() + (LOG_INTERVALL * 2);
+                    nextMeasureTimer = millis() + (currentSystemConfiguration.LOG_INTERVALL * 2);
 
                     // Reset dataString
                     dataString = "";
 
                     // Execute Mode
                     economicMode();
-                    break;
+                }
+                break;
 
-                case maintenance:
-                    // Set time for next measure
-                    nextMeasureTimer = millis() + LOG_INTERVALL;
+            case maintenance:
+                // Set time for next measure
+                nextMeasureTimer = millis() + currentSystemConfiguration.LOG_INTERVALL;
 
-                    // Reset dataString
-                    dataString = "";
+                // Reset dataString
+                dataString = "";
 
-                    // Execute Mode
-                    maintenanceMode();
-                    break;
+                // Execute Mode
+                maintenanceMode();
+                break;
 
-                case config:
-                    // Execute Mode
-                    if (Serial.available() != 0) {
-                        configMode();
-                    }
-                    else if (millis() > configTimeoutTimer) {
-                        switchMode(standard);
-                    }
-                    break;
-
-                case noMode:
-                    // 'noMode' is not allowed as a system mode, switching to 'standard'
+            case config:
+                // Execute Mode
+                if (Serial.available() != 0) {
+                    configMode();
+                }
+                else if (millis() > configTimeoutTimer) {
                     switchMode(standard);
-                    break;
-            }
+                }
+                break;
+
+            case noMode:
+                // 'noMode' is not allowed as a system mode, switching to 'standard'
+                switchMode(standard);
+                break;
         }
+
     }
-    else if (micros() >= switchModeTimer) {
+    else if (micros() > switchModeTimer) {
         greenButtonPressed = false;
         redButtonPressed = false;
         switchMode(nextMode);
