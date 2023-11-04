@@ -9,7 +9,7 @@
 #include <EEPROM.h>
 
 // -- Pins --
-// SoftSerial pins
+// GPS - SoftSerial pins
 #define RX 8
 #define TX 9
 
@@ -699,19 +699,13 @@ void maintenanceMode() {
 ===================================================
 */
 
-String promptUserInput(const String& prompt) {
-    Serial.println(prompt + " : ");
-
-    while (Serial.available() == 0) {
-        // TODO check if config mode timer has expired, return if yes
-    }
-    return Serial.readString();
-}
+// Set to true if the user has entered an incorrect value in config mode
+bool valueError = false;
 
 void configValueError(const String& command, const int& value) {
-    // TODO check if this works
     Serial.print("Unsupported value - " + command + " : ");
     Serial.println(value);
+    valueError = true;
 }
 
 void writeConfigToEEPROM () {
@@ -722,73 +716,86 @@ void getConfigFromEEPROM () {
     EEPROM.get(EEPROM_configuration, currentSystemConfiguration);
 }
 
-// TODO add config systemMode
+// Array of functions containing one function per supported config command
+void (*configFunctions[])(const String& command) = {
+    // LUMIN
+    [](const String& command) -> void
+    {
+        // Parse value from Serial
+        int value = Serial.parseInt();
 
-
-void configMode() {
-    // Reset config mode timeout to 30 minutes
-    switchModeTimer = millis() + configTimeout;
-
-    // String to store the user command
-    String command = Serial.readStringUntil('=');
-
-    // Remove any unwanted spaces or CR & LF symbols
-    command.trim();
-
-    // Make the string upper case
-    command.toUpperCase();
-
-    // Read value after the =
-    int value = Serial.parseInt();
-
-    // Flush data remaining in Serial to prevent errors
-    Serial.readString();
-
-    // -- Luminosity Sensor --
-    // Bool
-    if (command == "LUMIN") {
+        // Command Logic
         if (value != 1 and value != 0) {
             configValueError(command, value);
             return;
         }
-        currentSystemConfiguration.ACTIVATE_LUMINOSITY_SENSOR = (value == 1);
-    }
 
-    // Unsigned short int
-    else if (command == "LUMIN_LOW") {
+        // Write changes to config
+        currentSystemConfiguration.ACTIVATE_LUMINOSITY_SENSOR = (value == 1);
+    },
+
+    // LUMIN_LOW
+    [](const String& command) -> void
+    {
+        // Parse value from Serial
+        int value = Serial.parseInt();
+
+        // Command Logic
         if (0 <= value and value >= 1023) {
+            // Write changes to config
             currentSystemConfiguration.LUMINOSITY_LOW_THRESHOLD = value;
         }
         else {
             configValueError(command, value);
             return;
         }
-    }
+    },
 
-    // Unsigned short int
-    else if (command == "LUMIN_HIGH") {
+    // LUMIN_HIGH
+    [](const String& command) -> void
+    {
+        // Parse value from Serial
+        int value = Serial.parseInt();
+
+        // Command Logic
         if (0 <= value and value >= 1023) {
+            // Write changes to config
             currentSystemConfiguration.LUMINOSITY_HIGH_THRESHOLD = value;
         }
         else {
             configValueError(command, value);
             return;
         }
-    }
 
-    // -- Thermometer --
-    // Bool
-    else if (command == "TEMP_AIR") {
+
+    },
+
+    // TEMP_AIR
+    [](const String& command) -> void
+    {
+        // Parse value from Serial
+        int value = Serial.parseInt();
+
+        // Command Logic
         if (value != 1 and value != 0) {
             configValueError(command, value);
             return;
         }
-        currentSystemConfiguration.ACTIVATE_THERMOMETER = (value == 1);
-    }
 
-    // Char
-    else if (command == "MIN_TEMP_AIR") {
+        // Write changes to config
+        currentSystemConfiguration.ACTIVATE_THERMOMETER = (value == 1);
+
+    },
+
+    // MIN_TEMP_AIR
+    [](const String& command) -> void
+    {
+        // Parse value from Serial
+        int value = Serial.parseInt();
+
+        // Command Logic
         if (-40 <= value and value >= 85) {
+            // Write changes to config
             currentSystemConfiguration.THERMOMETER_MIN_TEMPERATURE = value;
         }
         else {
@@ -796,11 +803,17 @@ void configMode() {
             return;
         }
 
-    }
+    },
 
-    // Char
-    else if (command == "MAX_TEMP_AIR") {
+    // MAX_TEMP_AIR
+    [](const String& command) -> void
+    {
+        // Parse value from Serial
+        int value = Serial.parseInt();
+
+        // Command Logic
         if (-40 <= value and value >= 85) {
+            // Write changes to config
             currentSystemConfiguration.THERMOMETER_MAX_TEMPERATURE = value;
         }
         else {
@@ -808,32 +821,52 @@ void configMode() {
             return;
         }
 
-    }
+    },
 
-    // -- Hygrometry --
-    // Bool
-    else if (command == "HYGR") {
+    // HYGR
+    [](const String& command) -> void
+    {
+        // Parse value from Serial
+        int value = Serial.parseInt();
+
+        // Command Logic
         if (value != 1 and value != 0) {
             configValueError(command, value);
             return;
         }
-        currentSystemConfiguration.ACTIVATE_HYGROMETRY_SENSOR = (value == 1);
-    }
 
-    // Char
-    else if (command == "HYGR_MINT") {
+        // Write changes to config
+        currentSystemConfiguration.ACTIVATE_HYGROMETRY_SENSOR = (value == 1);
+
+    },
+
+    // HYGR_MINT
+    [](const String& command) -> void
+    {
+        // Parse value from Serial
+        int value = Serial.parseInt();
+
+        // Command Logic
         if (-40 <= value and value >= 85) {
+            // Write changes to config
             currentSystemConfiguration.MIN_TEMPERATURE_FOR_HYGROMETRY = value;
         }
         else {
             configValueError(command, value);
             return;
         }
-    }
 
-    // Char
-    else if (command == "HYGR_MAXT") {
+    },
+
+    // HYGR_MAXT
+    [](const String& command) -> void
+    {
+        // Parse value from Serial
+        int value = Serial.parseInt();
+
+        // Command Logic
         if (-40 <= value and value >= 85) {
+            // Write changes to config
             currentSystemConfiguration.MAX_TEMPERATURE_FOR_HYGROMETRY = value;
         }
         else {
@@ -841,45 +874,122 @@ void configMode() {
             return;
         }
 
-    }
+    },
 
-    // -- Pressure sensor
-    // Bool
-    if (command == "PRESSURE") {
+    // PRESSURE
+    [](const String& command) -> void
+    {
+        // Parse value from Serial
+        int value = Serial.parseInt();
+
+        // Command Logic
         if (value != 1 and value != 0) {
             configValueError(command, value);
             return;
         }
+
+        // Write changes to config
         currentSystemConfiguration.ACTIVATE_PRESSURE_SENSOR = (value == 1);
 
-    }
+    },
 
-    // Unsigned short int
-    else if (command == "PRESSURE_MIN") {
+    // PRESSURE_MIN
+    [](const String& command) -> void
+    {
+        // Parse value from Serial
+        int value = Serial.parseInt();
+
+        // Command Logic
         if (300 <= value and value >= 1100) {
+            // Write changes to config
             currentSystemConfiguration.MIN_VALID_PRESSURE = value;
         }
         else {
             configValueError(command, value);
             return;
         }
-    }
+    },
 
-    // Unsigned short int
-    else if (command == "PRESSURE_MAX") {
+    // PRESSURE_MAX
+    [](const String& command) -> void
+    {
+        // Parse value from Serial
+        int value = Serial.parseInt();
+
+        // Command Logic
         if (300 <= value and value >= 1100) {
+            // Write changes to config
             currentSystemConfiguration.MAX_VALID_PRESSURE = value;
         }
         else {
             configValueError(command, value);
             return;
         }
-    }
 
-    // -- RTC --
-    // String -> Unsigned chars
-    else if (command == "CLOCK") {
-        String HHMMSS = promptUserInput("HH:MM:SS");
+    },
+
+    // LOG_INTERVALL
+    [](const String& command) -> void
+    {
+        // Parse value from Serial
+        int value = Serial.parseInt();
+
+        // Command Logic
+        if (0 < value and value >= 255) {
+            // Write changes to config
+            currentSystemConfiguration.LOG_INTERVALL = value;
+        }
+        else {
+            configValueError(command, value);
+            return;
+        }
+
+    },
+
+    // FILE_MAX_SIZE
+    [](const String& command) -> void
+    {
+        // Parse value from Serial
+        int value = Serial.parseInt();
+
+        // Command Logic
+        if (100 < value and value >= 65535) {
+            currentSystemConfiguration.FILE_MAX_SIZE = value;
+        }
+        else {
+            configValueError(command, value);
+            return;
+        }
+
+
+    },
+
+    // RESET
+    [](const String& command) -> void
+    {
+        defaultConfig();
+    },
+
+    // TIMEOUT
+    [](const String& command) -> void
+    {
+        // Parse value from Serial
+        int value = Serial.parseInt();
+
+        // Command Logic
+        if (0 <= value and value >= 255) {
+            currentSystemConfiguration.TIMEOUT = value;
+        }
+        else {
+            configValueError(command, value);
+        }
+    },
+
+    // CLOCK
+    [](const String& command) -> void
+    {
+        String HHMMSS = Serial.readString();
+
         unsigned char hour, minute, second;
 
         if (sscanf(HHMMSS.c_str(), "%s:%s:%s", &hour, &minute, &second) == 3) {
@@ -896,17 +1006,19 @@ void configMode() {
                 return;
             }
 
+            // Write values to RTC
             clock.fillByHMS(hour, minute, second);
             clock.setTime();
         }
         else {
             Serial.println("err");
         }
-    }
+    },
 
-    // String -> Unsigned char:Unsigned char:int
-    else if (command == "DATE") {
-        String MMDDYY = promptUserInput("MM:DD:YY");
+    // DATE
+    [](const String& command) -> void
+    {
+        String MMDDYY = Serial.readString();
         unsigned char month, day;
         int year;
 
@@ -924,6 +1036,7 @@ void configMode() {
                 return;
             }
 
+            // Write values to RTC
             clock.fillByHMS(month, day, year);
             clock.setTime();
         }
@@ -931,11 +1044,19 @@ void configMode() {
             Serial.println("err");
             return;
         }
-    }
 
-    // String -> Unsigned char
-    else if (command == "DAY") {
+
+    },
+
+    // DAY
+    [](const String& command) -> void
+    {
+        // Parse value from Serial
+        int value = Serial.parseInt();
+
+        // Command Logic
         if (1 <= value and value >= 7) {
+            // Write value to RTC
             clock.fillDayOfWeek(value);
         }
         else {
@@ -944,79 +1065,100 @@ void configMode() {
         return;
 
 
-        //String day = promptUserInput("Day");
-        //
-        //unsigned char weekdayNumber;
-        //
-        //if(weekdayStringToInt(day, weekdayNumber)) {
-        //    clock.fillDayOfWeek(weekdayNumber);
-        //    clock.setTime();
-        //}
-        //else {
-        //    Serial.println("Error");
-        //}
-        //return;
-        //
-    }
+        /*
+        Too little memory, so I've removed this :
 
+        String day = promptUserInput("Day");
 
+        unsigned char weekdayNumber;
 
-    // -- MISC --
-    // Unsigned char
-    else if (command == "LOG_INTERVALL") {
-        if (0 < value and value >= 255) {
-            currentSystemConfiguration.LOG_INTERVALL = value;
+        if(weekdayStringToInt(day, weekdayNumber)) {
+            clock.fillDayOfWeek(weekdayNumber);
+            clock.setTime();
         }
         else {
-            configValueError(command, value);
-            return;
+            Serial.println("Error");
         }
-    }
-    // Unsigned Int
-    else if (command == "FILE_MAX_SIZE") {
-        if (100 < value and value >= 65535) {
-            currentSystemConfiguration.FILE_MAX_SIZE = value;
-        }
-        else {
-            configValueError(command, value);
-            return;
-        }
-    }
+        return;
+         */
+    },
 
-    else if (command == "RESET") {
-        defaultConfig();
-    }
-
-    else if (command == "VERSION") {
+    // VERSION
+    [](const String& command) -> void
+    {
         Serial.print(programVersion);
         Serial.print(", ID ");
         Serial.println(deviceID);
-        return;
     }
+};
 
-    // Unsigned char
-    else if (command == "TIMEOUT") {
-        if (0 <= value and value >= 255) {
-            currentSystemConfiguration.TIMEOUT = value;
-        }
-        else {
-            configValueError(command, value);
+// This mode is called by pressing the red button for 5s at the start of the programs execution
+void configMode() {
+    // Reset config mode timeout to 30 minutes
+    switchModeTimer = millis() + configTimeout;
+
+    // Array of supported commands
+    const char* configCommands[] = {"LUMIN", "LUMIN_LOW", "LUMIN_HIGH", "TEMP_AIR", "MIN_TEMP_AIR",
+                                    "MAX_TEMP_AIR", "HYGR", "HYGR_MINT", "HYGR_MAXT", "PRESSURE",
+                                    "PRESSURE_MIN", "PRESSURE_MAX", "LOG_INTERVALL", "FILE_MAX_SIZE",
+                                    "RESET", "TIMEOUT", "CLOCK", "DATE", "DAY", "VERSION"};
+
+    // String to store the user's input
+    String command = Serial.readStringUntil('=');
+
+    // Remove any unwanted spaces or CR & LF symbols
+    command.trim();
+
+    // Make the String upper case
+    command.toUpperCase();
+
+    // -- Interpretation of the users input --
+    int i = 0;
+    bool loop = true;
+
+    // Attempting to match the input to a supported configuration command
+    while(loop) {
+        if (i == 20) {
+            // If command is unknown, return to loop()
+            Serial.println("Unknown cmd");
             return;
         }
+
+        // Find command in list of supported commands
+        if (command == configCommands[i]) {
+            // Call function corresponding to command
+            configFunctions[i](command);
+
+            loop = false;
+        }
+        else {
+            i++;
+        }
     }
 
-    // If command is unknown, return to loop()
-    else {
-        Serial.println("Unknown cmd");
+    // -- Flush data remaining in Serial to prevent errors --
+    Serial.readString();
+
+    // Return if an invalid value was entered
+    if (valueError) {
+        valueError = false;
         return;
     }
 
-    //Serial.println(command + " (" + String(value) + ")");
+    Serial.println(command + " altered");
 
-    writeConfigToEEPROM();
+
+    // -- Write config to EEPROM --
+    // Unfortunately the entire config gets written again each time, which hits EEPROM pretty hard
+
+    // Theoretically I could calculate the exact location of each element of my configuration struct in EEPROM and
+    // only change that, but it's too complicated and memory intensive for this project
+
+    // Only config commands 0 - 15 require writing to EEPROM
+    if (i < 16) {
+        writeConfigToEEPROM();
+    }
 }
-
-
 
 
 /**
@@ -1070,7 +1212,7 @@ void setup() {
                 //Serial.println("Red is not pressed");
                 g = false;
             }
-            else if (micros()>counter) {
+            else if (micros() > counter) {
                 switchMode(config);
                 g = false;
             }
@@ -1100,10 +1242,6 @@ void setup() {
     // -- Configure SD Card --
     configureSDCard();
 
-    // -- Setup interrupts for buttons --
-    attachInterrupt(digitalPinToInterrupt(greenButtonPIN), greenButtonInterrupt, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(redButtonPIN), redButtonInterrupt, CHANGE);
-
     // -- Reserve space for Strings to avoid fragmentation --
     // Contains sensor data
     dataString.reserve(125);
@@ -1114,6 +1252,11 @@ void setup() {
     // Strings to assemble file name
     fileDate.reserve(8);
     fileName.reserve(16);
+
+    // -- Setup interrupts for buttons --
+    // This is done last to prevent interrupts during 'setup()'
+    attachInterrupt(digitalPinToInterrupt(greenButtonPIN), greenButtonInterrupt, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(redButtonPIN), redButtonInterrupt, CHANGE);
 }
 
 void loop() {
