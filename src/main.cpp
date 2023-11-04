@@ -34,12 +34,10 @@
 #define deviceID 69
 #define programVersion 420
 
-//TODO move global variables to EEPROM when possible
 
 // -- EEPROM Adresses --
 #define EEPROM_BOOL_programHasRunBefore 1     // Set to true if the program has been executed before, since having been written to the arduino's flash
 #define EEPROM_configuration 2                // Contains the system configuration
-
 
 
 /**
@@ -192,9 +190,6 @@ void criticalError(errorCase error) {
     }
 }
 
-// Time in ms when the config mode will be exited, reset when a command is entered in config mode
-unsigned int configTimeoutTimer;
-
 // -- Enum containing all possible system modes --
 // DO NOT CHANGE THIS OUTSIDE THE 'switchMode()' FUNCTION OR STUFF WILL BREAK
 enum systemMode {standard, economic, maintenance, config, noMode};
@@ -209,9 +204,14 @@ systemMode nextMode = noMode;
 // Used to switch back from maintenance systemMode, contains either standard or economic
 systemMode lastModeBeforeMaintenance;
 
+// Contains the time in ms, when the system mode is changed,
+// used after interrupts and in config mode
+unsigned int switchModeTimer = 0;
+
 void switchMode(systemMode newMode){
     // Reset nextMode, used to trigger 'switchMode()' in 'loop()'
     nextMode = noMode;
+    switchModeTimer = 0;
 
     // Sets the time threshold for the next measure back to 0
     nextMeasureTimer = 0;
@@ -236,7 +236,7 @@ void switchMode(systemMode newMode){
 
         // Config
         case config:
-            configTimeoutTimer = millis() + configTimeout;
+            switchModeTimer = millis() + configTimeout;
             setLEDcolor(Yellow);
             break;
 
@@ -248,10 +248,6 @@ void switchMode(systemMode newMode){
 }
 
 // -- Interrupts --
-// Contains the time in ms, when the system mode is changed,
-// as long as the pressed button is not released before that time
-unsigned int switchModeTimer = 0;
-
 // Green button interrupt function
 void greenButtonInterrupt() {
     noInterrupts();
@@ -340,29 +336,34 @@ void addBMEdata(String& output) {
     BMESensor.takeForcedMeasurement();
 
     //Temperature
-    float temperature = BMESensor.getTemperatureCelcius();
+    static float temperature = BMESensor.getTemperatureCelcius();
 
-    //Serial.println("temp : " + String(temperature));
+    Serial.println(temperature);
 
-    if (currentSystemConfiguration.ACTIVATE_THERMOMETER and currentSystemConfiguration.THERMOMETER_MIN_TEMPERATURE <= temperature and temperature >= currentSystemConfiguration.THERMOMETER_MAX_TEMPERATURE) {
-        output += String(temperature);
+    if (currentSystemConfiguration.ACTIVATE_THERMOMETER) {
+        if (currentSystemConfiguration.THERMOMETER_MIN_TEMPERATURE <= temperature and temperature >= currentSystemConfiguration.THERMOMETER_MAX_TEMPERATURE) {
+            output += String(temperature);
 
-        output += valueSeparator;
+            output += valueSeparator;
+        }
     }
 
     //Humidity
-    if (currentSystemConfiguration.ACTIVATE_HYGROMETRY_SENSOR and currentSystemConfiguration.MIN_TEMPERATURE_FOR_HYGROMETRY <= temperature and temperature >= currentSystemConfiguration.MAX_TEMPERATURE_FOR_HYGROMETRY) {
-        output += String(BMESensor.getRelativeHumidity());
+    if (currentSystemConfiguration.ACTIVATE_HYGROMETRY_SENSOR) {
+        if (currentSystemConfiguration.MIN_TEMPERATURE_FOR_HYGROMETRY <= temperature and temperature >= currentSystemConfiguration.MAX_TEMPERATURE_FOR_HYGROMETRY) {
+            output += String(BMESensor.getRelativeHumidity());
 
-        output += valueSeparator;
+            output += valueSeparator;
+        }
     }
 
     //Pressure
     float pressure = BMESensor.getPressure();
 
-    if (currentSystemConfiguration.ACTIVATE_PRESSURE_SENSOR and currentSystemConfiguration.MIN_VALID_PRESSURE <= pressure and pressure >= currentSystemConfiguration.MAX_VALID_PRESSURE) {
-
-        output += String(pressure);
+    if (currentSystemConfiguration.ACTIVATE_PRESSURE_SENSOR) {
+        if (currentSystemConfiguration.MIN_VALID_PRESSURE <= pressure and pressure >= currentSystemConfiguration.MAX_VALID_PRESSURE) {
+            output += String(pressure);
+        }
     }
 }
 
@@ -438,20 +439,21 @@ void configureRTC() {
 */
 
 // -- Adds the time to a String --
+// TODO check if this works
 void addTime(String& output)
 {
     clock.getTime();
-    output += String(clock.hour, DEC);
+    output += clock.hour;
     output += ":";
-    output += String(clock.minute, DEC);
+    output += clock.minute;
     output += ":";
-    output += String(clock.second, DEC);
+    output += clock.second;
     output += "-";
-    output += String(clock.month, DEC);
+    output += clock.month;
     output += "/";
-    output += String(clock.dayOfMonth, DEC);
+    output += clock.dayOfMonth;
     output += "/";
-    output += String(clock.year + 2000, DEC);
+    output += (clock.year + 2000);
     output += valueSeparator;
 }
 
@@ -480,6 +482,9 @@ String fileName;
 // Current LOG file revision number
 unsigned short int revision = 1;
 
+
+//TODO switch fileDate and fileName to char to avoid c_str()?
+
 // Write a line to the current revision LOG file on the SD card
 void writeToSD(const String& dataToWrite){
     //Reset fileDate
@@ -495,7 +500,7 @@ void writeToSD(const String& dataToWrite){
     bool t = true;
 
     while(t){
-        fileName = fileDate + String(revision) + ".txt";
+        fileName = fileDate + revision + ".txt";
 
         if (!currentFile.open(fileName.c_str(), O_RDWR | O_CREAT | O_AT_END)) {
             criticalError(SDread_error);
@@ -517,7 +522,9 @@ void writeToSD(const String& dataToWrite){
 
     }
 
-    Serial.println("S : " + String(currentFile.fileSize()) + " B");
+    Serial.print("S : ");
+    Serial.print(currentFile.fileSize());
+    Serial.println(" B");
 
     currentFile.println(dataToWrite);
 
@@ -702,7 +709,9 @@ String promptUserInput(const String& prompt) {
 }
 
 void configValueError(const String& command, const int& value) {
-    Serial.print("Unsupported value - " + command + " : " + String(value));
+    // TODO check if this works
+    Serial.print("Unsupported value - " + command + " : ");
+    Serial.println(value);
 }
 
 void writeConfigToEEPROM () {
@@ -718,7 +727,7 @@ void getConfigFromEEPROM () {
 
 void configMode() {
     // Reset config mode timeout to 30 minutes
-    configTimeoutTimer = millis() + configTimeout;
+    switchModeTimer = millis() + configTimeout;
 
     // String to store the user command
     String command = Serial.readStringUntil('=');
@@ -934,26 +943,28 @@ void configMode() {
         }
         return;
 
-        /*
-        String day = promptUserInput("Day");
 
-        unsigned char weekdayNumber;
-
-        if(weekdayStringToInt(day, weekdayNumber)) {
-            clock.fillDayOfWeek(weekdayNumber);
-            clock.setTime();
-        }
-        else {
-            Serial.println("Error");
-        }
-        return;
-         */
+        //String day = promptUserInput("Day");
+        //
+        //unsigned char weekdayNumber;
+        //
+        //if(weekdayStringToInt(day, weekdayNumber)) {
+        //    clock.fillDayOfWeek(weekdayNumber);
+        //    clock.setTime();
+        //}
+        //else {
+        //    Serial.println("Error");
+        //}
+        //return;
+        //
     }
+
+
 
     // -- MISC --
     // Unsigned char
     else if (command == "LOG_INTERVALL") {
-        if (0 <= value and value >= 255) {
+        if (0 < value and value >= 255) {
             currentSystemConfiguration.LOG_INTERVALL = value;
         }
         else {
@@ -963,7 +974,7 @@ void configMode() {
     }
     // Unsigned Int
     else if (command == "FILE_MAX_SIZE") {
-        if (0 <= value and value >= 65535) {
+        if (100 < value and value >= 65535) {
             currentSystemConfiguration.FILE_MAX_SIZE = value;
         }
         else {
@@ -977,7 +988,9 @@ void configMode() {
     }
 
     else if (command == "VERSION") {
-        Serial.println(programVersion);
+        Serial.print(programVersion);
+        Serial.print(", ID ");
+        Serial.println(deviceID);
         return;
     }
 
@@ -1002,6 +1015,8 @@ void configMode() {
 
     writeConfigToEEPROM();
 }
+
+
 
 
 /**
@@ -1143,17 +1158,20 @@ void loop() {
 
             case config:
                 // Execute Mode
-                if (Serial.available() != 0) {
-                    configMode();
-                }
-                else if (millis() > configTimeoutTimer) {
+
+                // Switch modes if 'switchModeTimer' is exceeded
+                if (millis() > switchModeTimer) {
                     switchMode(standard);
+                }
+
+                // Go into config mode if there is something in Serial
+                else if (Serial.available() > 0) {
+                    configMode();
                 }
                 break;
 
             case noMode:
-                // 'noMode' is not allowed as a system mode, switching to 'standard'
-                switchMode(standard);
+                // 'noMode' is not allowed as a system mode, switchMode() will not allow switching to it
                 break;
         }
 
