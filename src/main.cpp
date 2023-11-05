@@ -1193,7 +1193,7 @@ void loop() {
             case standard:
                 if (millis() > nextMeasureTimer) {
                     // Set time for next measure
-                    nextMeasureTimer = millis() + currentSystemConfiguration.LOG_INTERVALL * 1000;
+                    nextMeasureTimer = millis() + currentSystemConfiguration.LOG_INTERVALL * 1000 * 60;
 
                     // Perform sensor reading
                     performReading();
@@ -1203,7 +1203,7 @@ void loop() {
             case economic:
                 if (millis() > nextMeasureTimer) {
                     // Set time for next measure
-                    nextMeasureTimer = millis() + (currentSystemConfiguration.LOG_INTERVALL * 2000);
+                    nextMeasureTimer = millis() + (currentSystemConfiguration.LOG_INTERVALL * 2 * 1000 * 60);
 
                     // Perform sensor reading
                     performReading();
@@ -1218,7 +1218,7 @@ void loop() {
                 }
 
                 // Set time for next measure
-                nextMeasureTimer = millis() + currentSystemConfiguration.LOG_INTERVALL * 1000;
+                nextMeasureTimer = millis() + currentSystemConfiguration.LOG_INTERVALL * 1000 * 60;
 
                 // Perform sensor reading
                 performReading();
