@@ -194,7 +194,7 @@ class StdioStream : private StreamBaseFile {
    *
    * \param[in] path file to be opened.
    *
-   * \param[in] mode a string that indicates the open systemMode.
+   * \param[in] mode a string that indicates the open mode.
    *
    * <table>
    * <tr>
@@ -234,11 +234,11 @@ class StdioStream : private StreamBaseFile {
    * The character 'b' shall have no effect, but is allowed for ISO C
    * standard conformance.
    *
-   * Opening a file with append systemMode causes all subsequent writes to the
+   * Opening a file with append mode causes all subsequent writes to the
    * file to be forced to the then current end-of-file, regardless of
    * intervening calls to the fseek function.
    *
-   * When a file is opened with update systemMode, both input and output may be
+   * When a file is opened with update mode, both input and output may be
    * performed on the associated stream. However, output shall not be
    * directly followed by input without an intervening call to the fflush
    * function or to a file positioning function (fseek, or rewind), and

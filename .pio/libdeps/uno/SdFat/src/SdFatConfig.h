@@ -270,7 +270,7 @@ typedef uint8_t SdCsPin_t;
  * programming and other operations will be allowed for faster write
  * performance.
  *
- * Some cards will not sleep in low power systemMode unless CHECK_FLASH_PROGRAMMING
+ * Some cards will not sleep in low power mode unless CHECK_FLASH_PROGRAMMING
  * is non-zero.
  */
 #ifndef CHECK_FLASH_PROGRAMMING

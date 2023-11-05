@@ -69,7 +69,7 @@
   SD_CARD_ERROR(CMD33, "Set last erase block")                      \
   SD_CARD_ERROR(CMD38, "Erase selected blocks")                     \
   SD_CARD_ERROR(CMD58, "Read OCR register")                         \
-  SD_CARD_ERROR(CMD59, "Set CRC systemMode")                              \
+  SD_CARD_ERROR(CMD59, "Set CRC mode")                              \
   SD_CARD_ERROR(ACMD6, "Set SDIO bus width")                        \
   SD_CARD_ERROR(ACMD13, "Read extended status")                     \
   SD_CARD_ERROR(ACMD23, "Set pre-erased count")                     \
@@ -135,7 +135,7 @@ const uint16_t SD_READ_TIMEOUT = 300;
 const uint16_t SD_WRITE_TIMEOUT = 600;
 //------------------------------------------------------------------------------
 // SD card commands
-/** GO_IDLE_STATE - init card in spi systemMode if CS low */
+/** GO_IDLE_STATE - init card in spi mode if CS low */
 const uint8_t CMD0 = 0X00;
 /** ALL_SEND_CID - Asks any card to send the CID. */
 const uint8_t CMD2 = 0X02;
@@ -238,7 +238,7 @@ const uint32_t CARD_STATUS_ERASE_RESET = 1UL << 13;
  * 7 = prg
  * 8 = dis
  * 9-14 = reserved
- * 15 = reserved for I/O systemMode
+ * 15 = reserved for I/O mode
  */
 const uint32_t CARD_STATUS_CURRENT_STATE = 0XF << 9;
 /** Shift for current state. */
@@ -253,7 +253,7 @@ const uint32_t CARD_STATUS_APP_CMD = 1UL << 5;
 // bit 4 reserved.
 /** Error in the sequence of the authentication process. */
 const uint32_t CARD_STATUS_AKE_SEQ_ERROR = 1UL << 3;
-// bits 2,1, and 0 reserved for manufacturer test systemMode.
+// bits 2,1, and 0 reserved for manufacturer test mode.
 //==============================================================================
 /** status for card in the ready state */
 const uint8_t R1_READY_STATE = 0X00;
@@ -400,7 +400,7 @@ struct scr_t {
  */
 // fields are big endian
 struct sds_t {
-  /** byte 0, bit 7-6 width, bit 5 secured systemMode, bits 4-0 reserved. */
+  /** byte 0, bit 7-6 width, bit 5 secured mode, bits 4-0 reserved. */
   uint8_t busWidthSecureMode;
   /** byte 1 reserved */
   uint8_t reserved1;
@@ -463,7 +463,7 @@ struct sds_t {
   uint8_t eraseOffset() const { return eraseTimeoutOffset & 3; }
   /** \return true if full user logical erase is supported else false. */
   bool fule() const { return discardFule & 1; }
-  /** \return true for secure systemMode else false. */
+  /** \return true for secure mode else false. */
   bool secureMode() const { return busWidthSecureMode & 0X20; }
   /** \return speed class or -1 for error. */
   int speedClass() const {

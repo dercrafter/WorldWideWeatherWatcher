@@ -38,13 +38,13 @@ class StreamBaseClass : protected StreamBaseFile, virtual public ios {
  protected:
   void clearWriteError() { StreamBaseFile::clearWriteError(); }
   /* Internal do not use
-   * \return systemMode
+   * \return mode
    */
   int16_t getch();
   bool getWriteError() { return StreamBaseFile::getWriteError(); }
   void open(const char* path, ios::openmode mode);
   /** Internal do not use
-   * \return systemMode
+   * \return mode
    */
   ios::openmode getmode() { return m_mode; }
   void putch(char c);
@@ -75,7 +75,7 @@ class fstream : public iostream, StreamBaseClass {
   fstream() {}
   /** Constructor with open
    * \param[in] path file to open
-   * \param[in] mode open systemMode
+   * \param[in] mode open mode
    */
   explicit fstream(const char* path, openmode mode = in | out) {
     open(path, mode);
@@ -96,7 +96,7 @@ class fstream : public iostream, StreamBaseClass {
   void close() { StreamBaseClass::close(); }
   /** Open a fstream
    * \param[in] path path to open
-   * \param[in] mode open systemMode
+   * \param[in] mode open mode
    *
    * Valid open modes are (at end, ios::ate, and/or ios::binary may be added):
    *
@@ -163,7 +163,7 @@ class ifstream : public istream, StreamBaseClass {
   ifstream() {}
   /** Constructor with open
    * \param[in] path file to open
-   * \param[in] mode open systemMode
+   * \param[in] mode open mode
    */
   explicit ifstream(const char* path, openmode mode = in) { open(path, mode); }
 #if DESTRUCTOR_CLOSES_FILE
@@ -177,9 +177,9 @@ class ifstream : public istream, StreamBaseClass {
   bool is_open() { return StreamBaseFile::isOpen(); }
   /** Open an ifstream
    * \param[in] path file to open
-   * \param[in] mode open systemMode
+   * \param[in] mode open mode
    *
-   * \a systemMode See fstream::open() for valid modes.
+   * \a mode See fstream::open() for valid modes.
    */
   void open(const char* path, openmode mode = in) {
     StreamBaseClass::open(path, mode | in);
@@ -216,7 +216,7 @@ class ofstream : public ostream, StreamBaseClass {
   ofstream() {}
   /** Constructor with open
    * \param[in] path file to open
-   * \param[in] mode open systemMode
+   * \param[in] mode open mode
    */
   explicit ofstream(const char* path, openmode mode = out) { open(path, mode); }
 #if DESTRUCTOR_CLOSES_FILE
@@ -235,9 +235,9 @@ class ofstream : public ostream, StreamBaseClass {
   void close() { StreamBaseClass::close(); }
   /** Open an ofstream
    * \param[in] path file to open
-   * \param[in] mode open systemMode
+   * \param[in] mode open mode
    *
-   * \a systemMode See fstream::open() for valid modes.
+   * \a mode See fstream::open() for valid modes.
    */
   void open(const char* path, openmode mode = out) {
     StreamBaseClass::open(path, mode | out);

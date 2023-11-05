@@ -953,7 +953,7 @@ bool FatFile::rename(FatFile* dirFile, const char* newPath) {
     DBG_FAIL_MACRO;
     goto fail;
   }
-  // Can't rename LFN in 8.3 systemMode.
+  // Can't rename LFN in 8.3 mode.
   if (!USE_LONG_FILE_NAMES && isLFN()) {
     DBG_FAIL_MACRO;
     goto fail;

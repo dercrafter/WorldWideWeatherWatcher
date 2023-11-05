@@ -30,7 +30,7 @@ type uint64_t for classes that support exFAT.
 exFAT has many features not available in FAT16/FAT32.  exFAT has excellent
 support for contiguous files on flash devices and supports preallocation.
 
-If the SD card is the only SPI device, use dedicated SPI systemMode. This can
+If the SD card is the only SPI device, use dedicated SPI mode. This can
 greatly improve performance. See the bench example.
 
 Here is write performance for an old, 2011, card on a Due board.

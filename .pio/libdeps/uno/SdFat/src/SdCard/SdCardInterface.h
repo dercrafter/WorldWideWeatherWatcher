@@ -36,7 +36,7 @@
  */
 class SdCardInterface : public FsBlockDeviceInterface {
  public:
-  /** CMD6 Switch systemMode: Check Function Set Function.
+  /** CMD6 Switch mode: Check Function Set Function.
    * \param[in] arg CMD6 argument.
    * \param[out] status return status data.
    *

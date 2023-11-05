@@ -125,7 +125,7 @@ class ios_base {
   static const fmtflags basefield = dec | hex | oct;
   // static const fmtflags floatfield  = scientific | fixed;
   //----------------------------------------------------------------------------
-  /** typedef for iostream open systemMode */
+  /** typedef for iostream open mode */
   typedef uint8_t openmode;
 
   // Openmode flags.
@@ -133,7 +133,7 @@ class ios_base {
   static const openmode app = 0X4;
   /** open and seek to end immediately after opening */
   static const openmode ate = 0X8;
-  /** perform input and output in binary systemMode (as opposed to text systemMode) */
+  /** perform input and output in binary mode (as opposed to text mode) */
   static const openmode binary = 0X10;
   /** open for input */
   static const openmode in = 0X20;

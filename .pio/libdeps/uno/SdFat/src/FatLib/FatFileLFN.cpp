@@ -367,7 +367,7 @@ found:
   goto open;
 
 create:
-  // don't create unless O_CREAT and write systemMode
+  // don't create unless O_CREAT and write mode
   if (!(oflag & O_CREAT) || !isWriteMode(oflag)) {
     DBG_WARN_MACRO;
     goto fail;

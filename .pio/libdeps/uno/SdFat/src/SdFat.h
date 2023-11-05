@@ -74,7 +74,7 @@ class SdBase : public Vol {
     return begin(SdSpiConfig(csPin, SHARED_SPI, maxSck));
   }
   //----------------------------------------------------------------------------
-  /** Initialize SD card and file system for SPI systemMode.
+  /** Initialize SD card and file system for SPI mode.
    *
    * \param[in] spiConfig SPI configuration.
    * \return true for success or false for failure.
@@ -83,7 +83,7 @@ class SdBase : public Vol {
     return cardBegin(spiConfig) && Vol::begin(m_card);
   }
   //---------------------------------------------------------------------------
-  /** Initialize SD card and file system for SDIO systemMode.
+  /** Initialize SD card and file system for SDIO mode.
    *
    * \param[in] sdioConfig SDIO configuration.
    * \return true for success or false for failure.
@@ -95,7 +95,7 @@ class SdBase : public Vol {
   /** \return Pointer to SD card object. */
   SdCard* card() { return m_card; }
   //----------------------------------------------------------------------------
-  /** Initialize SD card in SPI systemMode.
+  /** Initialize SD card in SPI mode.
    *
    * \param[in] spiConfig SPI configuration.
    * \return true for success or false for failure.
@@ -105,7 +105,7 @@ class SdBase : public Vol {
     return m_card && !m_card->errorCode();
   }
   //----------------------------------------------------------------------------
-  /** Initialize SD card in SDIO systemMode.
+  /** Initialize SD card in SDIO mode.
    *
    * \param[in] sdioConfig SDIO configuration.
    * \return true for success or false for failure.

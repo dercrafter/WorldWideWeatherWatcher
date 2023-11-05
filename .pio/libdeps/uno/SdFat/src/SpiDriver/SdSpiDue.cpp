@@ -112,9 +112,9 @@ void SdSpiArduinoDriver::activate() {
   pSpi->SPI_CR = SPI_CR_SPIDIS;
   // reset SPI
   pSpi->SPI_CR = SPI_CR_SWRST;
-  // no systemMode fault detection, set master systemMode
+  // no mode fault detection, set master mode
   pSpi->SPI_MR = SPI_PCS(SPI_CHIP_SEL) | SPI_MR_MODFDIS | SPI_MR_MSTR;
-  // systemMode 0, 8-bit,
+  // mode 0, 8-bit,
   pSpi->SPI_CSR[SPI_CHIP_SEL] = scbr | SPI_CSR_CSAAT | SPI_CSR_NCPHA;
   // enable SPI
   pSpi->SPI_CR |= SPI_CR_SPIEN;

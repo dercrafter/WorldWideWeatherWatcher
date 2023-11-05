@@ -356,13 +356,13 @@ static uint32_t baseClock() { return F_CPU; }
 
 #elif defined(__IMXRT1062__)
 //------------------------------------------------------------------------------
-static void gpioMux(uint8_t systemMode) {
-  IOMUXC_SW_MUX_CTL_PAD_GPIO_SD_B0_04 = systemMode;  // DAT2
-  IOMUXC_SW_MUX_CTL_PAD_GPIO_SD_B0_05 = systemMode;  // DAT3
-  IOMUXC_SW_MUX_CTL_PAD_GPIO_SD_B0_00 = systemMode;  // CMD
-  IOMUXC_SW_MUX_CTL_PAD_GPIO_SD_B0_01 = systemMode;  // CLK
-  IOMUXC_SW_MUX_CTL_PAD_GPIO_SD_B0_02 = systemMode;  // DAT0
-  IOMUXC_SW_MUX_CTL_PAD_GPIO_SD_B0_03 = systemMode;  // DAT1
+static void gpioMux(uint8_t mode) {
+  IOMUXC_SW_MUX_CTL_PAD_GPIO_SD_B0_04 = mode;  // DAT2
+  IOMUXC_SW_MUX_CTL_PAD_GPIO_SD_B0_05 = mode;  // DAT3
+  IOMUXC_SW_MUX_CTL_PAD_GPIO_SD_B0_00 = mode;  // CMD
+  IOMUXC_SW_MUX_CTL_PAD_GPIO_SD_B0_01 = mode;  // CLK
+  IOMUXC_SW_MUX_CTL_PAD_GPIO_SD_B0_02 = mode;  // DAT0
+  IOMUXC_SW_MUX_CTL_PAD_GPIO_SD_B0_03 = mode;  // DAT1
 }
 //------------------------------------------------------------------------------
 // add speed strength args?
@@ -761,8 +761,8 @@ bool SdioCard::begin(SdioConfig sdioConfig) {
   if (!cardACMD13(&m_sds)) {
     return false;
   }
-  // Determine if High Speed systemMode is supported and set frequency.
-  // Check status[16] for error 0XF or status[16] for new systemMode 0X1.
+  // Determine if High Speed mode is supported and set frequency.
+  // Check status[16] for error 0XF or status[16] for new mode 0X1.
   uint8_t status[64];
   if (m_scr.sdSpec() > 0 && cardCMD6(0X00FFFFFF, status) && (2 & status[13]) &&
       cardCMD6(0X80FFFFF1, status) && (status[16] & 0XF) == 1) {

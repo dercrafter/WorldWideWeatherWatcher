@@ -96,7 +96,7 @@ bool FatFile::open(FatFile* dirFile, FatSfn_t* fname, oflag_t oflag) {
     }
     index++;
   }
-  // don't create unless O_CREAT and write systemMode
+  // don't create unless O_CREAT and write mode
   if (!(oflag & O_CREAT) || !isWriteMode(oflag)) {
     DBG_FAIL_MACRO;
     goto fail;

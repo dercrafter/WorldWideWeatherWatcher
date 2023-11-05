@@ -151,7 +151,7 @@ bool SharedSpiCard::begin(SdSpiConfig spiConfig) {
   spiSelect();
   timeout.set(SD_INIT_TIMEOUT);
   while (true) {
-    // command to go idle in SPI systemMode
+    // command to go idle in SPI mode
     if (cardCommand(CMD0, 0) == R1_IDLE_STATE) {
       break;
     }

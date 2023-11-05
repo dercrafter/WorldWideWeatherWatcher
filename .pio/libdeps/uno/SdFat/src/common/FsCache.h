@@ -151,7 +151,7 @@ class FsCache {
   bool isDirty() { return m_status & CACHE_STATUS_DIRTY; }
   /** Prepare cache to access sector.
    * \param[in] sector Sector to read.
-   * \param[in] option systemMode for cached sector.
+   * \param[in] option mode for cached sector.
    * \return Address of cached sector.
    */
   uint8_t* prepare(uint32_t sector, uint8_t option);

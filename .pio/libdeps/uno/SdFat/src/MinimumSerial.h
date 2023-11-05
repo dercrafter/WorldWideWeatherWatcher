@@ -43,7 +43,7 @@ class MinimumSerial : public print_t {
    */
   int available();
   /**
-   * Set baud rate for serial port zero and enable in non interrupt systemMode.
+   * Set baud rate for serial port zero and enable in non interrupt mode.
    * Do not call this function if you use another serial library.
    * \param[in] baud rate
    */

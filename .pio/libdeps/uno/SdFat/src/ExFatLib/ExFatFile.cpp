@@ -286,7 +286,7 @@ bool ExFatFile::openPrivate(ExFatFile* dir, ExName_t* fname, oflag_t oflag) {
   uint8_t freeNeed = 3;
   bool inSet = false;
 
-  // error if already open, no access systemMode, or no directory.
+  // error if already open, no access mode, or no directory.
   if (isOpen() || !dir->isDir()) {
     DBG_FAIL_MACRO;
     goto fail;

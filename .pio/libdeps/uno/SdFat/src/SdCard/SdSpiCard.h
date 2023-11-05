@@ -88,7 +88,7 @@ class SharedSpiCard {
    * \return true for success or false for failure.
    */
   bool begin(SdSpiConfig spiConfig);
-  /** CMD6 Switch systemMode: Check Function Set Function.
+  /** CMD6 Switch mode: Check Function Set Function.
    * \param[in] arg CMD6 argument.
    * \param[out] status return status data.
    *
