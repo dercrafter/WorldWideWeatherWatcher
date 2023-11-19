@@ -13,7 +13,7 @@ I would recommend to anyone attempting to make use of our code to upgrade to an 
 
 ## Parts list
 #### Arduino Uno R3 - Microcontroller
-The Arduino microcontroller is the brain of our device, with 1 kB of EEPROM, 2 kB of SRAM and 32 kB of FLASH memory.
+The Arduino microcontroller is the brain of the device, with 1 kB of EEPROM, 2 kB of SRAM and 32 kB of FLASH memory.
 
 #### Grove SD Card Shield v4.3 - SD Reader
 Connected directly to the Arduino pins, the connectors on the SD Card Shield are 5V. 
