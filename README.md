@@ -27,7 +27,7 @@ Connected to the SD Card Shield's I2C port.
 
 #### Grove GPS v1.2 - GPS
 Connected to port D8 of the Grove Base Shield, and therefore uses pins D8 and D9 of the Arduino.
-Serial software is connected to these pins to separate the data sent by the GPS from the user-accessible serial monitor.
+SoftwareSerial is connected to these pins to segregate the data sent by the GPS from the user-accessible serial monitor.
 
 #### Grove Chainable RGB LED v2.0 - RGB LED
 Connected to port D6 of the Grove Base Shield, it uses pins D6 and D7 of the Arduino.
