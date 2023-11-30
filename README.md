@@ -6,10 +6,10 @@ This project is part of the embedded systems block in my second year of computer
 
 The aim of this project is to create a device for measuring the parameters influencing the formation of cyclones and other natural disasters around the world.
 
-To achieve this, our device is equipped with various sensors to measure brightness, temperature, pressure and humidity and to determine the device's geographical position. What's more, it's equipped with an SD reader to record this information.
+To achieve this, the device is equipped with various sensors to measure brightness, temperature, pressure and humidity and to determine the device's geographical position. What's more, it's equipped with an SD reader to record this information.
 
 The microcontroller used for this project is an Arduino Uno R3 with 2kB of SRAM, 32 kB of flash memory and 1kB of EEPROM, which led to numerous difficulties during the design phase due to the small amount of SRAM and Flash memory available. 
-I would recommend to anyone attempting to make use of our code to upgrade to an Arduino Uno R4 which has a much more comfortable 32kB of RAM and 256kB of flash memory.
+I would recommend to anyone attempting to make use of this code to upgrade to an Arduino Uno R4 which has a much more comfortable 32kB of RAM and 256kB of flash memory.
 
 ## Parts list
 #### Arduino Uno R3 - Microcontroller
@@ -47,17 +47,17 @@ The file system used is FAT32, since FAT16 is limited to 2 GB partitions, wherea
 Furthermore, FAT32 is more modern and therefore offers greater compatibility with a large number of devices, making it easier to extract data from the device.
 
 #### Wire
-This library is needed to communicate with our I2C-connected sensors.
+This library is needed to communicate with the I2C-connected sensors.
 
 #### forcedClimate
 This library enables the Arduino to read measurement data from the BME280 sensor.
 It has the advantage of being power and memory efficient.
 
 #### DS1307
-This library lets the Arduino interact with our RTC clock.
+This library lets the Arduino interact with the RTC clock.
 
 #### ChainableLED
-This library lets the Arduino change the color of our RGB LED.
+This library lets the Arduino change the color of the RGB LED.
 
 #### EEPROM
 This library allows the Arduino to write to and read from the Arduino's EEPROM.
