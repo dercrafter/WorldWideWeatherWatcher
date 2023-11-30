@@ -8,7 +8,7 @@ The aim of this project is to create a device for measuring the parameters influ
 
 To achieve this, our device is equipped with various sensors to measure brightness, temperature, pressure and humidity and to determine the device's geographical position. What's more, it's equipped with an SD reader to record this information.
 
-The microcontroller used for this project is an Arduino Uno R3 with 2kB of SRAM, 32 kB of flash memory and 1kB of EEPROM, which led to numerous difficulties during the design phase du to the small amount of SRAM and Flash memory available. 
+The microcontroller used for this project is an Arduino Uno R3 with 2kB of SRAM, 32 kB of flash memory and 1kB of EEPROM, which led to numerous difficulties during the design phase due to the small amount of SRAM and Flash memory available. 
 I would recommend to anyone attempting to make use of our code to upgrade to an Arduino Uno R4 which has a much more comfortable 32kB of RAM and 256kB of flash memory.
 
 ## Parts list
