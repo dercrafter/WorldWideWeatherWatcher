@@ -13,7 +13,7 @@ I would recommend to anyone attempting to make use of this code to upgrade to an
 
 ## Parts list
 #### Arduino Uno R3 - Microcontroller
-The Arduino microcontroller is the brain of the device, with 1 kB of EEPROM, 2 kB of SRAM and 32 kB of FLASH memory.
+The Arduino microcontroller is the brain of the device, it has 1 kB of EEPROM, 2 kB of SRAM and 32 kB of FLASH memory.
 
 #### Grove SD Card Shield v4.3 - SD Reader
 Connected directly to the Arduino pins, the connectors on the SD Card Shield are 5V. 
@@ -61,3 +61,48 @@ This library lets the Arduino change the color of the RGB LED.
 
 #### EEPROM
 This library allows the Arduino to write to and read from the Arduino's EEPROM.
+
+## Operating modes
+The system's functions are divided up among four operating modes. 
+The current operating mode can be changed by pressing the green or red button for 5 seconds.
+
+#### Standard mode
+- Takes periodic measurements.
+  - Stores the data on the SD card
+  - Sends the data to the serial monitor
+  - Sends information about the current file to the serial monitor
+  - Archives the current file when FILE_MAX_SIZE is reached
+  - Waits for LOG_INTERVALL between measurements
+- Turns LED green
+- This mode is entered automatically when the device boots up
+- Accessible from economic mode (green button), maintenance mode (red button) or config mode.
+
+
+#### Economic mode
+- Takes periodic measurements.
+  - GPS is only read every second measurement
+  - Stores the data on SD card
+  - Sends the data to the serial monitor
+  - Sends information about the current file to the serial monitor
+  - Archive current file when FILE_MAX_SIZE is reached
+  - Waits 2*LOG_INTERVALL between measurements
+- Lights the LED in blue
+- Accessible from standard mode (green button) or maintenance mode (red button).
+
+
+#### Maintenance mode
+- Takes periodic measurements.
+  - Sends the data to the serial monitor
+  - Waits for LOG_INTERVALL between measurements
+- Deactivates the SD card reader, allowing the SD card to be safely removed
+- Lights up the LED in yellow
+- Accessible from standard or economic mode (red button)
+
+
+#### Configuration mode
+- Allows commands to be sent to the device via the serial interface
+  - Allows parameters to be changed
+  - Provides information about the device
+- Accessible by pressing the red button for 5 seconds while the device is booting up
+- Lights up the LED in orange
+- Returns to standard mode after 30 minutes of inactivity
